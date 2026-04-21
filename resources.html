@@ -7,7 +7,7 @@
 const RESOURCE_KEY='bw.resources.custom';
 const baseResources=[
 {key:'core',icon:'📦',label:'Core',items:[{title:'Supplier Directory',lead:'Directory and quick reference links.',link:'supplier-directory.html'},{title:'Product Guide',lead:'Browse the product guide.',link:'product-guide.html'},{title:'Photos',lead:'Photo and PDF reference sheets.',link:'photos.html'},{title:'Account Applications',lead:'Account forms and account-related files.',link:'account-applications.html'}]},
-{key:'resources',icon:'📁',label:'Resource Pages',items:[{title:'Core Resources',lead:'Open the core resources page.',link:'resources-core.html'},{title:'Accounts',lead:'Open the accounts resources page.',link:'resources-accounts.html'},{title:'Calculators',lead:'Open calculators and conversion charts.',link:'resources-calculators.html'},{title:'Templates',lead:'Open templates.',link:'resources-templates.html'}]}
+{key:'resources',icon:'📁',label:'Resource Pages',items:[{title:'Core Resources',lead:'Open the core resources page.',link:'resources-core.html'},{title:'Accounts',lead:'Open the accounts resources page.',link:'resources-accounts.html'},{title:'Calculators',lead:'Open calculators and conversion charts.',link:'resources-calculators.html'},{title:'Templates',lead:'Open templates.',link:'resources-templates.html'},{title:'Order',lead:'Open Order.',link:'order.html'}]}
 ];
 function getResCustom(){try{return JSON.parse(localStorage.getItem(RESOURCE_KEY)||'[]')}catch(e){return []}}
 function saveResCustom(v){localStorage.setItem(RESOURCE_KEY,JSON.stringify(v))}
