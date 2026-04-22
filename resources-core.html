@@ -24,6 +24,11 @@
       font-size:28px;
     }
 
+    h2{
+      margin:0 0 10px;
+      font-size:20px;
+    }
+
     .panel{
       background:rgba(255,255,255,.04);
       border:1px solid rgba(255,255,255,.10);
@@ -81,7 +86,7 @@
 
     .actions button{
       width:auto;
-      min-width:140px;
+      min-width:160px;
       padding:0 16px;
     }
 
@@ -117,6 +122,7 @@
       font-weight:700;
       margin-bottom:8px;
       line-height:1.3;
+      word-break:break-word;
     }
 
     .tableWrap{
@@ -126,7 +132,7 @@
 
     table{
       width:100%;
-      min-width:760px;
+      min-width:900px;
       border-collapse:collapse;
     }
 
@@ -155,6 +161,13 @@
       word-break:break-all;
     }
 
+    .note{
+      color:#b8c2d0;
+      font-size:13px;
+      line-height:1.5;
+      margin-top:10px;
+    }
+
     @media (max-width:760px){
       .grid-2{
         grid-template-columns:1fr;
@@ -177,6 +190,14 @@
     <div class="panel">
       <div class="grid grid-2">
         <div>
+          <label for="customerName">Customer name</label>
+          <input id="customerName" type="text" placeholder="Customer or site name"/>
+        </div>
+        <div>
+          <label for="sendEmail">Send map pack to</label>
+          <input id="sendEmail" type="email" placeholder="name@example.com"/>
+        </div>
+        <div>
           <label for="rack">Rack number</label>
           <input id="rack" type="number" min="1" max="99" value="1"/>
         </div>
@@ -197,17 +218,22 @@
       <div class="actions">
         <button id="buildBtn" type="button">Build Rack</button>
         <button id="resetBtn" type="button" class="secondary">Reset</button>
-        <button id="copyCsvBtn" type="button" class="secondary">Copy CSV</button>
+        <button id="sendPackBtn" type="button" class="secondary">Send Map Pack</button>
+      </div>
+
+      <div class="note">
+        “Send Map Pack” will download two CSV files and open an email draft.
+        The user will still need to manually attach the downloaded files to the email.
       </div>
     </div>
 
     <div class="panel">
-      <h2 style="margin:0 0 10px;">Rack Map</h2>
+      <h2>Rack Map</h2>
       <div class="map" id="map"></div>
     </div>
 
     <div class="panel">
-      <h2 style="margin:0 0 10px;">Expanded Bin List</h2>
+      <h2>Expanded Bin List</h2>
       <div class="tableWrap">
         <table>
           <thead>
@@ -231,6 +257,8 @@
       const alpha = "abcdefghijklmnopqrstuvwxyz".split("");
       let state = [];
 
+      const customerNameEl = document.getElementById('customerName');
+      const sendEmailEl = document.getElementById('sendEmail');
       const rackEl = document.getElementById('rack');
       const shelvesEl = document.getElementById('shelves');
       const binsEl = document.getElementById('bins');
@@ -238,7 +266,7 @@
 
       const buildBtn = document.getElementById('buildBtn');
       const resetBtn = document.getElementById('resetBtn');
-      const copyCsvBtn = document.getElementById('copyCsvBtn');
+      const sendPackBtn = document.getElementById('sendPackBtn');
 
       const mapEl = document.getElementById('map');
       const listEl = document.getElementById('list');
@@ -313,7 +341,6 @@
                 ${[1,2,3,4,5].map(n => `<option value="${n}" ${item.pos === n ? 'selected' : ''}>${n} position${n === 1 ? '' : 's'}</option>`).join('')}
               </select>
             `;
-
             row.appendChild(cell);
           }
 
@@ -359,8 +386,39 @@
         drawList();
       }
 
-      function csvFromTable(){
-        const rows = [['Bin Location','Part Number','Description','Min Stock','Max Stock','QR Code']];
+      function getCustomerRows(){
+        const rows = [[
+          'Bin Location',
+          'Customer Part Number',
+          'Description',
+          'Min Stock',
+          'Max Stock'
+        ]];
+
+        Array.from(listEl.querySelectorAll('tr')).forEach(tr => {
+          const inputs = tr.querySelectorAll('input');
+          rows.push([
+            tr.children[0].innerText.trim(),
+            inputs[0].value.trim(),
+            inputs[1].value.trim(),
+            inputs[2].value.trim(),
+            inputs[3].value.trim()
+          ]);
+        });
+
+        return rows;
+      }
+
+      function getInternalRows(){
+        const rows = [[
+          'Bin Location',
+          'Customer Part Number',
+          'Description',
+          'Min Stock',
+          'Max Stock',
+          'Our Part Number',
+          'QR Code'
+        ]];
 
         Array.from(listEl.querySelectorAll('tr')).forEach(tr => {
           const inputs = tr.querySelectorAll('input');
@@ -370,18 +428,66 @@
             inputs[1].value.trim(),
             inputs[2].value.trim(),
             inputs[3].value.trim(),
+            '',
             tr.children[5].innerText.trim()
           ]);
         });
 
+        return rows;
+      }
+
+      function rowsToCsv(rows){
         return rows.map(row =>
           row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
         ).join('\\n');
       }
 
+      function downloadFile(filename, content, mimeType){
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function openMailDraft(){
+        const to = sendEmailEl.value.trim();
+        if(!to){
+          alert('Enter an email address in "Send map pack to".');
+          return;
+        }
+
+        const customer = customerNameEl.value.trim() || 'Customer';
+        const rack = pad(Math.max(1, Math.min(99, parseInt(rackEl.value || '1', 10))));
+
+        const subject = `Rack Map Pack | ${customer} | Rack ${rack}`;
+        const body = [
+          `Hi,`,
+          ``,
+          `Please find the rack map pack for ${customer}, Rack ${rack}.`,
+          ``,
+          `Two files have just been downloaded from the tool:`,
+          `- Customer Form CSV`,
+          `- Internal Master CSV`,
+          ``,
+          `Please attach those downloaded files to this email before sending.`,
+          ``,
+          `Regards`
+        ].join('\\n');
+
+        window.location.href =
+          `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      }
+
       buildBtn.addEventListener('click', buildAll);
 
       resetBtn.addEventListener('click', () => {
+        customerNameEl.value = '';
+        sendEmailEl.value = '';
         rackEl.value = '1';
         shelvesEl.value = '4';
         binsEl.value = '6';
@@ -389,13 +495,17 @@
         buildAll();
       });
 
-      copyCsvBtn.addEventListener('click', async () => {
-        try{
-          await navigator.clipboard.writeText(csvFromTable());
-          alert('CSV copied');
-        }catch(err){
-          alert('Clipboard copy is not available on this device/browser.');
-        }
+      sendPackBtn.addEventListener('click', () => {
+        const customer = (customerNameEl.value.trim() || 'customer').replace(/[^a-z0-9_-]/gi, '-');
+        const rack = pad(Math.max(1, Math.min(99, parseInt(rackEl.value || '1', 10))));
+
+        const customerCsv = rowsToCsv(getCustomerRows());
+        const internalCsv = rowsToCsv(getInternalRows());
+
+        downloadFile(`customer-form-rack-${rack}-${customer}.csv`, customerCsv, 'text/csv;charset=utf-8');
+        downloadFile(`internal-master-rack-${rack}-${customer}.csv`, internalCsv, 'text/csv;charset=utf-8');
+
+        setTimeout(openMailDraft, 400);
       });
 
       buildAll();
