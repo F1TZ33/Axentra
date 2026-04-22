@@ -47,6 +47,9 @@
     .orderRow{
       display:grid;
       grid-template-columns:minmax(0,1fr) 110px 54px;
+      grid-template-areas:
+        "part qty remove"
+        "scan scan scan";
       gap:10px;
       align-items:end;
       padding:12px;
@@ -55,17 +58,10 @@
       background:rgba(255,255,255,.02);
     }
 
-    .orderPartBlock,
-    .orderQtyBlock,
-    .orderRemoveBlock{
-      min-width:0;
-    }
-
-    .orderPartBlock{
-      display:grid;
-      gap:8px;
-      min-width:0;
-    }
+    .orderPartBlock{ grid-area:part; min-width:0; }
+    .orderQtyBlock{ grid-area:qty; min-width:0; }
+    .orderRemoveBlock{ grid-area:remove; min-width:0; }
+    .orderScanWrap{ grid-area:scan; min-width:0; }
 
     .orderScanBtn,
     .orderMiniBtn{
@@ -155,19 +151,12 @@
       }
 
       .orderRow{
-        grid-template-columns:1fr 92px;
+        grid-template-columns:1fr 86px;
         grid-template-areas:
           "part part"
           "qty remove"
           "scan scan";
-        align-items:end;
       }
-
-      .orderPartBlock{grid-area:part}
-      .orderQtyBlock{grid-area:qty}
-      .orderRemoveBlock{grid-area:remove}
-      .orderScanBtn{grid-area:scan}
-      .orderRemoveBtn{min-height:46px}
 
       .orderBottom{
         align-items:flex-start;
@@ -293,12 +282,9 @@
       const row = document.createElement('div');
       row.className = 'orderRow';
       row.innerHTML = `
-        <div class="orderPartBlock">
-          <div class="field">
-            <label>Part number</label>
-            <input class="partInput" type="text" value="${escapeHtml(partValue)}" autocomplete="off"/>
-          </div>
-          <button class="orderScanBtn" type="button">Scan QR</button>
+        <div class="field orderPartBlock">
+          <label>Part number</label>
+          <input class="partInput" type="text" value="${escapeHtml(partValue)}" autocomplete="off"/>
         </div>
 
         <div class="field orderQtyBlock">
@@ -308,6 +294,10 @@
 
         <div class="orderRemoveBlock">
           <button class="orderMiniBtn orderRemoveBtn" type="button" aria-label="Remove line">×</button>
+        </div>
+
+        <div class="orderScanWrap">
+          <button class="orderScanBtn" type="button">Scan QR</button>
         </div>
       `;
       rowsRoot.appendChild(row);
