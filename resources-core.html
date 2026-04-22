@@ -1,112 +1,151 @@
-<!DOCTYPE html>
-
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Core</title>
-<link href="assets/css/style.css" rel="stylesheet"/>
-</head>
-<body data-page="admin">
-<div class="container">
-<div class="siteHeader"><img alt="Bearing Wholesalers" class="siteLogo" src="assets/img/logo.png"/></div>
-<div class="topbar">
-<div class="leftBtns">
-<a class="btn" href="resources.html">← Back</a>
-<a class="btn" href="index.html">⌂ Dashboard</a>
-</div>
-<div class="rightBtns">
-<button class="btn" data-action="suggest" type="button">Suggest edit</button>
-<button class="btn" data-action="devnote" data-editor-only="1" style="display:none" type="button">Dev notes</button>
-<button class="btn" data-action="admin" title="Admin" type="button">Admin</button>
-</div>
-</div>
-<div class="card" id="pwTools" style="margin-top:16px">
-<div style="font-weight:900;margin-bottom:8px">Change admin password</div>
-<div class="row">
-<div class="field"><label>Current password</label><input id="ad_pw_current" type="password"/></div>
-<div class="field"><label>New password</label><input id="ad_pw_new" type="password"/></div>
-</div>
-<div class="row">
-<div class="field"><label>Confirm new password</label><input id="ad_pw_confirm" type="password"/></div>
-<div class="field" style="display:flex;align-items:flex-end">
-<button class="btn" id="ad_pw_save" type="button">Update password</button>
-</div>
-</div>
-</div>
-<div class="meta">Version: <strong>GitHub vFinal</strong> • Last updated: <strong>2026-02-08</strong></div><h1>Core</h1><p>Content coming soon.</p></div>
-<div class="modalBack" id="suggestModal">
-<div class="modal">
-<h3>Suggest edit</h3>
-<p class="subtitle" style="margin:0 0 10px">This creates an email draft to the manual admin. You’ll still click Send in your email app.</p>
-<div class="row">
-<div class="field">
-<label>Your name (required)</label>
-<input id="se_name" placeholder="e.g., Jordan"/>
-</div>
-<div class="field">
-<label>Urgency (optional)</label>
-<select id="se_urgency">
-<option value="">—</option>
-<option>Low</option><option>Medium</option><option>High</option>
-</select>
-</div>
-</div>
-<div class="field">
-<label>Suggestion (required)</label>
-<textarea id="se_suggestion" placeholder="What should change? Be specific if possible."></textarea>
-</div>
-<div class="field" data-editor-field="1" style="display:none">
-<label>Section / location (optional)</label>
-<input id="se_section" placeholder="Where on the page does this apply?"/>
-</div>
-<div class="field" data-editor-field="1" style="display:none">
-<label>Proposed replacement wording (optional)</label>
-<textarea id="se_replacement" placeholder="Paste the new wording here (optional)."></textarea>
-</div>
-<div class="field" data-editor-field="1" style="display:none">
-<label>Reason / context (optional)</label>
-<textarea id="se_reason" placeholder="Why should this change? Any customer context?"></textarea>
-</div>
-<input id="se_page" type="hidden"/>
-<input id="se_path" type="hidden"/>
-<input id="se_time" type="hidden"/>
-<div class="actions">
-<button class="btn" id="se_send" type="button">Confirm &amp; create email</button>
-<button class="smallbtn" data-close="suggestModal" type="button">Cancel</button>
-</div>
-</div>
-</div>
-<div class="modalBack" id="devNoteModal">
-<div class="modal">
-<h3>Developer notes (private)</h3>
-<p class="subtitle" style="margin:0 0 10px">Saved locally on this computer/browser. Not visible to normal users.</p>
-<div class="field">
-<label>Page</label>
-<input id="dn_path" readonly=""/>
-</div>
-<div class="field">
-<label>Notes</label>
-<textarea id="dn_note" placeholder="Private admin notes for this page…"></textarea>
-</div>
-<div class="actions">
-<button class="btn" id="dn_save" type="button">Save notes</button>
-<button class="smallbtn" data-close="devNoteModal" type="button">Close</button>
-</div>
-</div>
-</div>
-<script src="assets/js/app.js"></script>
 <script>
-    (function(){
-      try{
-        const raw = localStorage.getItem('bwproguide.settings');
-        const s = raw ? JSON.parse(raw) : {};
-        const v = s.version || 'v3';
-        const lu = s.lastUpdated || '';
-        document.querySelectorAll('[data-meta="version"]').forEach(el=>el.textContent=v);
-        document.querySelectorAll('[data-meta="lastUpdated"]').forEach(el=>el.textContent=lu || '—');
-      }catch(e){}
-    })();
-  </script>
-</body>
-</html>
+(() => {
+  try {
+
+    const buildBtn = document.getElementById('buildBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const copyCsvBtn = document.getElementById('copyCsvBtn');
+
+    const rackNumberEl = document.getElementById('rackNumber');
+    const shelfCountEl = document.getElementById('shelfCount');
+    const binsPerShelfEl = document.getElementById('binsPerShelf');
+    const defaultPositionsEl = document.getElementById('defaultPositions');
+
+    const rackMap = document.getElementById('rackMap');
+    const binListBody = document.getElementById('binListBody');
+
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    let rackState = [];
+
+    function pad2(v){ return String(v).padStart(2,'0'); }
+    function shelfLetter(i){ return alphabet[i] || 'z'; }
+
+    function buildState(){
+      rackState = [];
+      const rack = parseInt(rackNumberEl.value || '1');
+      const shelves = parseInt(shelfCountEl.value || '1');
+      const bins = parseInt(binsPerShelfEl.value || '1');
+      const positions = parseInt(defaultPositionsEl.value || '1');
+
+      for(let s=0;s<shelves;s++){
+        for(let b=0;b<bins;b++){
+          rackState.push({
+            rack,
+            shelfIndex:s,
+            binIndex:b,
+            positions
+          });
+        }
+      }
+    }
+
+    function compactCode(r,s,b,p){
+      let end = alphabet[p-1] || 'a';
+      return p === 1
+        ? `${pad2(r)}-${shelfLetter(s)}-${pad2(b+1)}-a`
+        : `${pad2(r)}-${shelfLetter(s)}-${pad2(b+1)}-a:${end}`;
+    }
+
+    function expanded(r,s,b,p){
+      let out=[];
+      for(let i=0;i<p;i++){
+        out.push(`${pad2(r)}-${shelfLetter(s)}-${pad2(b+1)}-${alphabet[i]}`);
+      }
+      return out;
+    }
+
+    function renderMap(){
+      rackMap.innerHTML = '';
+
+      let shelves = parseInt(shelfCountEl.value || '1');
+      let bins = parseInt(binsPerShelfEl.value || '1');
+
+      for(let s=0;s<shelves;s++){
+        let row = document.createElement('div');
+        row.style.display='grid';
+        row.style.gridTemplateColumns=`80px repeat(${bins},1fr)`;
+        row.style.gap='8px';
+
+        let tag = document.createElement('div');
+        tag.textContent='Shelf '+shelfLetter(s);
+        row.appendChild(tag);
+
+        for(let b=0;b<bins;b++){
+          let item = rackState.find(x=>x.shelfIndex===s && x.binIndex===b);
+
+          let tile = document.createElement('div');
+          tile.style.border='1px solid rgba(255,255,255,.1)';
+          tile.style.padding='8px';
+
+          tile.innerHTML = `
+            <div>${compactCode(item.rack,s,b,item.positions)}</div>
+            <select data-s="${s}" data-b="${b}">
+              ${[1,2,3,4,5].map(n=>`<option ${item.positions===n?'selected':''}>${n}</option>`).join('')}
+            </select>
+          `;
+
+          row.appendChild(tile);
+        }
+
+        rackMap.appendChild(row);
+      }
+
+      rackMap.querySelectorAll('select').forEach(sel=>{
+        sel.addEventListener('change', e=>{
+          let s = parseInt(e.target.dataset.s);
+          let b = parseInt(e.target.dataset.b);
+          let item = rackState.find(x=>x.shelfIndex===s && x.binIndex===b);
+          item.positions = parseInt(e.target.value);
+          renderMap();
+          renderList();
+        });
+      });
+    }
+
+    function renderList(){
+      binListBody.innerHTML='';
+
+      rackState.forEach(item=>{
+        expanded(item.rack,item.shelfIndex,item.binIndex,item.positions)
+        .forEach(loc=>{
+          let tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${loc}</td>
+            <td><input></td>
+            <td><input></td>
+            <td><input></td>
+            <td><input></td>
+            <td>${loc}</td>
+          `;
+          binListBody.appendChild(tr);
+        });
+      });
+    }
+
+    function buildAll(){
+      buildState();
+      renderMap();
+      renderList();
+    }
+
+    buildBtn.onclick = buildAll;
+
+    resetBtn.onclick = () => {
+      rackNumberEl.value=1;
+      shelfCountEl.value=4;
+      binsPerShelfEl.value=6;
+      defaultPositionsEl.value=1;
+      buildAll();
+    };
+
+    copyCsvBtn.onclick = () => {
+      alert('CSV copy coming next step');
+    };
+
+    buildAll();
+
+  } catch(e) {
+    alert('Script error: ' + e.message);
+  }
+})();
+</script>
