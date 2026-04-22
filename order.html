@@ -3,543 +3,214 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Rack Map Builder</title>
+  <title>Order Capture</title>
+  <link href="assets/css/style.css" rel="stylesheet"/>
+
   <style>
     body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:#0b1320;
-      color:#fff;
-      padding:16px;
-      box-sizing:border-box;
+      padding-top:max(0px, env(safe-area-inset-top));
+      padding-bottom:max(28px, calc(env(safe-area-inset-bottom) + 18px));
     }
 
-    .container{
-      max-width:1100px;
-      margin:0 auto;
-    }
-
-    h1{
-      margin:0 0 16px;
-      font-size:28px;
-    }
-
-    h2{
-      margin:0 0 10px;
-      font-size:20px;
-    }
-
-    .panel{
-      background:rgba(255,255,255,.04);
+    .orderCard{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
       border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:16px;
+      border-radius:20px;
+      padding:18px;
+      box-shadow:0 14px 32px rgba(0,0,0,.16);
+    }
+
+    .orderTopGrid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
       margin-bottom:16px;
     }
 
-    .grid{
+    .orderRows{
       display:grid;
+      gap:12px;
+    }
+
+    .orderRow{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 110px 54px;
+      grid-template-areas:
+        "part qty remove"
+        "scan scan scan";
       gap:10px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      background:rgba(255,255,255,.02);
     }
 
-    .grid-2{
-      grid-template-columns:repeat(2, minmax(0,1fr));
-    }
+    .orderPartBlock{ grid-area:part; }
+    .orderQtyBlock{ grid-area:qty; }
+    .orderRemoveBlock{ grid-area:remove; }
+    .orderScanWrap{ grid-area:scan; }
 
-    label{
-      display:block;
-      font-size:13px;
-      margin-bottom:6px;
-      color:#b8c2d0;
-    }
-
-    input, select, button{
-      width:100%;
-      min-height:44px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.15);
-      background:#111a28;
-      color:#fff;
-      padding:0 12px;
+    /* 🔥 MATCH HEIGHTS */
+    .field input,
+    .orderScanBtn,
+    .orderMiniBtn{
+      height:48px;
+      min-height:48px;
       box-sizing:border-box;
-      font-size:15px;
     }
 
-    button{
-      background:#c62828;
-      border-color:#c62828;
-      font-weight:700;
+    .field input{
+      padding:0 14px;
+      border-radius:12px;
+    }
+
+    .orderScanBtn,
+    .orderMiniBtn{
+      border-radius:12px;
+      border:1px solid rgba(198,40,40,.28);
+      background:linear-gradient(180deg, rgba(198,40,40,.12), rgba(198,40,40,.06));
+      font-weight:800;
+      color:var(--text);
       cursor:pointer;
+      width:100%;
     }
 
-    button.secondary{
-      background:#1a2433;
-      border-color:rgba(255,255,255,.15);
-    }
-
-    .actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:12px;
-    }
-
-    .actions button{
-      width:auto;
-      min-width:160px;
-      padding:0 16px;
-    }
-
-    .map{
-      overflow:auto;
-      margin-top:12px;
-    }
-
-    .shelfRow{
-      display:grid;
-      gap:8px;
-      margin-bottom:8px;
-      min-width:max-content;
-    }
-
-    .cell{
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.03);
-      border-radius:10px;
-      padding:8px;
-      font-size:12px;
-    }
-
-    .shelfLabel{
+    .orderRemoveBtn{
+      min-width:48px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight:700;
-      min-height:44px;
+      padding:0;
     }
 
-    .binCode{
-      font-weight:700;
-      margin-bottom:8px;
-      line-height:1.3;
-      word-break:break-word;
+    .orderBottom{
+      display:flex;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-top:16px;
+      gap:12px;
     }
 
-    .tableWrap{
-      overflow:auto;
-      margin-top:12px;
-    }
-
-    table{
-      width:100%;
-      min-width:900px;
-      border-collapse:collapse;
-    }
-
-    th, td{
-      border-bottom:1px solid rgba(255,255,255,.10);
-      padding:8px;
-      text-align:left;
-      vertical-align:top;
-    }
-
-    th{
-      background:#121d2b;
-      position:sticky;
-      top:0;
-    }
-
-    td input{
-      min-height:38px;
-      font-size:14px;
-    }
-
-    .qrCell{
-      font-family:monospace;
-      font-size:12px;
-      color:#d7e4ff;
-      word-break:break-all;
-    }
-
-    .note{
-      color:#b8c2d0;
-      font-size:13px;
-      line-height:1.5;
-      margin-top:10px;
+    @media (max-width:980px){
+      .orderTopGrid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
     }
 
     @media (max-width:760px){
-      .grid-2{
+      .orderTopGrid{
         grid-template-columns:1fr;
       }
 
-      .actions{
-        flex-direction:column;
-      }
-
-      .actions button{
-        width:100%;
+      .orderRow{
+        grid-template-columns:1fr 90px;
+        grid-template-areas:
+          "part part"
+          "qty remove"
+          "scan scan";
       }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h1>Rack Map Builder</h1>
 
-    <div class="panel">
-      <div class="grid grid-2">
-        <div>
-          <label for="customerName">Customer name</label>
-          <input id="customerName" type="text" placeholder="Customer or site name"/>
-        </div>
-        <div>
-          <label for="sendEmail">Send map pack to</label>
-          <input id="sendEmail" type="email" placeholder="name@example.com"/>
-        </div>
-        <div>
-          <label for="rack">Rack number</label>
-          <input id="rack" type="number" min="0" max="99" value="0"/>
-        </div>
-        <div>
-          <label for="shelves">Number of shelves</label>
-          <input id="shelves" type="number" min="0" max="26" value="0"/>
-        </div>
-        <div>
-          <label for="bins">Bins per shelf</label>
-          <input id="bins" type="number" min="0" max="99" value="0"/>
-        </div>
-        <div>
-          <label for="positions">Default positions per bin</label>
-          <input id="positions" type="number" min="0" max="26" value="0"/>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="buildBtn" type="button">Build Rack</button>
-        <button id="resetBtn" type="button" class="secondary">Reset</button>
-        <button id="sendPackBtn" type="button" class="secondary">Send Map Pack</button>
-      </div>
-
-      <div class="note">
-        “Send Map Pack” downloads both CSV files first, then opens the email draft so you only need to attach the downloaded files.
-      </div>
+    <div class="siteHeader">
+      <img class="siteLogo" src="assets/img/logo.png"/>
     </div>
 
-    <div class="panel">
-      <h2>Rack Map</h2>
-      <div class="map" id="map"></div>
+    <div class="topbar">
+      <a class="btn" href="index.html">⤒ Dashboard</a>
     </div>
 
-    <div class="panel">
-      <h2>Expanded Bin List</h2>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Bin Location</th>
-              <th>Part Number</th>
-              <th>Description</th>
-              <th>Min Stock</th>
-              <th>Max Stock</th>
-              <th>QR Code</th>
-            </tr>
-          </thead>
-          <tbody id="list"></tbody>
-        </table>
+    <section class="heroPanel">
+      <h1>Order Capture</h1>
+    </section>
+
+    <section class="orderCard">
+
+      <div class="orderTopGrid">
+        <div class="field"><label>Company</label><input id="companyName"></div>
+        <div class="field"><label>Customer</label><input id="customerName"></div>
+        <div class="field"><label>Email</label><input id="customerEmail"></div>
+        <div class="field"><label>Date</label><input id="orderDate" type="date"></div>
+        <div class="field"><label>Reference</label><input id="orderReference"></div>
       </div>
-    </div>
+
+      <h3>Items</h3>
+      <div class="orderRows" id="orderRows"></div>
+
+      <div class="orderBottom">
+        <button id="addRowBtn" class="smallbtn">Add another line</button>
+        <button id="completeBtn" class="btn">Complete</button>
+      </div>
+
+    </section>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const alpha = "abcdefghijklmnopqrstuvwxyz".split("");
-      let state = [];
+<script>
+(() => {
+  const root = document.getElementById('orderRows');
+  const addBtn = document.getElementById('addRowBtn');
+  const completeBtn = document.getElementById('completeBtn');
+  const orderDate = document.getElementById('orderDate');
 
-      const customerNameEl = document.getElementById('customerName');
-      const sendEmailEl = document.getElementById('sendEmail');
-      const rackEl = document.getElementById('rack');
-      const shelvesEl = document.getElementById('shelves');
-      const binsEl = document.getElementById('bins');
-      const positionsEl = document.getElementById('positions');
+  orderDate.value = new Date().toISOString().slice(0,10);
 
-      const buildBtn = document.getElementById('buildBtn');
-      const resetBtn = document.getElementById('resetBtn');
-      const sendPackBtn = document.getElementById('sendPackBtn');
+  function row(){
+    const el = document.createElement('div');
+    el.className = 'orderRow';
 
-      const mapEl = document.getElementById('map');
-      const listEl = document.getElementById('list');
+    el.innerHTML = `
+      <div class="field orderPartBlock">
+        <label>Part number</label>
+        <input class="partInput">
+      </div>
 
-      function pad(n){
-        return String(n).padStart(2,'0');
+      <div class="field orderQtyBlock">
+        <label>Qty</label>
+        <input class="qtyInput" type="number">
+      </div>
+
+      <div class="orderRemoveBlock">
+        <button class="orderMiniBtn orderRemoveBtn">×</button>
+      </div>
+
+      <div class="orderScanWrap">
+        <button class="orderScanBtn">Scan QR</button>
+      </div>
+    `;
+
+    root.appendChild(el);
+
+    const part = el.querySelector('.partInput');
+    const qty = el.querySelector('.qtyInput');
+
+    qty.addEventListener('blur', () => {
+      if(part.value && qty.value && el === root.lastElementChild){
+        row();
       }
-
-      function shelfLetter(i){
-        return alpha[i] || 'z';
-      }
-
-      function compactCode(item){
-        if(item.pos === 1){
-          return `${item.rack}-${shelfLetter(item.s)}-${pad(item.b + 1)}-a`;
-        }
-        return `${item.rack}-${shelfLetter(item.s)}-${pad(item.b + 1)}-a:${alpha[item.pos - 1]}`;
-      }
-
-      function expand(item){
-        const out = [];
-        for(let i = 0; i < item.pos; i++){
-          out.push(`${item.rack}-${shelfLetter(item.s)}-${pad(item.b + 1)}-${alpha[i]}`);
-        }
-        return out;
-      }
-
-      function clearOutputs(){
-        state = [];
-        mapEl.innerHTML = '';
-        listEl.innerHTML = '';
-      }
-
-      function buildState(){
-        const rackNumber = parseInt(rackEl.value || '0', 10);
-        const shelves = parseInt(shelvesEl.value || '0', 10);
-        const bins = parseInt(binsEl.value || '0', 10);
-        const pos = parseInt(positionsEl.value || '0', 10);
-
-        if(rackNumber <= 0 || shelves <= 0 || bins <= 0 || pos <= 0){
-          clearOutputs();
-          return false;
-        }
-
-        const rack = pad(Math.min(99, rackNumber));
-        const safeShelves = Math.min(26, shelves);
-        const safeBins = Math.min(99, bins);
-        const safePos = Math.min(26, pos);
-
-        state = [];
-
-        for(let s = 0; s < safeShelves; s++){
-          for(let b = 0; b < safeBins; b++){
-            state.push({
-              rack,
-              s,
-              b,
-              pos: safePos
-            });
-          }
-        }
-
-        return true;
-      }
-
-      function drawMap(){
-        mapEl.innerHTML = '';
-
-        const shelves = parseInt(shelvesEl.value || '0', 10);
-        const bins = parseInt(binsEl.value || '0', 10);
-
-        if(shelves <= 0 || bins <= 0 || !state.length) return;
-
-        for(let s = 0; s < shelves; s++){
-          const row = document.createElement('div');
-          row.className = 'shelfRow';
-          row.style.gridTemplateColumns = `90px repeat(${bins}, minmax(120px, 1fr))`;
-
-          const label = document.createElement('div');
-          label.className = 'cell shelfLabel';
-          label.textContent = `Shelf ${shelfLetter(s)}`;
-          row.appendChild(label);
-
-          for(let b = 0; b < bins; b++){
-            const item = state.find(x => x.s === s && x.b === b);
-
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.innerHTML = `
-              <div class="binCode">${compactCode(item)}</div>
-              <select data-s="${s}" data-b="${b}">
-                ${[1,2,3,4,5].map(n => `<option value="${n}" ${item.pos === n ? 'selected' : ''}>${n} position${n === 1 ? '' : 's'}</option>`).join('')}
-              </select>
-            `;
-            row.appendChild(cell);
-          }
-
-          mapEl.appendChild(row);
-        }
-
-        mapEl.querySelectorAll('select').forEach(sel => {
-          sel.addEventListener('change', e => {
-            const s = parseInt(e.target.dataset.s, 10);
-            const b = parseInt(e.target.dataset.b, 10);
-            const item = state.find(x => x.s === s && x.b === b);
-            if(item){
-              item.pos = parseInt(e.target.value, 10);
-              drawMap();
-              drawList();
-            }
-          });
-        });
-      }
-
-      function drawList(){
-        listEl.innerHTML = '';
-        if(!state.length) return;
-
-        state.forEach(item => {
-          expand(item).forEach(loc => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${loc}</td>
-              <td><input type="text"/></td>
-              <td><input type="text"/></td>
-              <td><input type="text" inputmode="numeric"/></td>
-              <td><input type="text" inputmode="numeric"/></td>
-              <td class="qrCell">${loc}</td>
-            `;
-            listEl.appendChild(tr);
-          });
-        });
-      }
-
-      function buildAll(){
-        const built = buildState();
-        if(!built) return;
-        drawMap();
-        drawList();
-      }
-
-      function getCustomerRows(){
-        const rows = [[
-          'Bin Location',
-          'Customer Part Number',
-          'Description',
-          'Min Stock',
-          'Max Stock'
-        ]];
-
-        Array.from(listEl.querySelectorAll('tr')).forEach(tr => {
-          const inputs = tr.querySelectorAll('input');
-          rows.push([
-            tr.children[0].innerText.trim(),
-            inputs[0].value.trim(),
-            inputs[1].value.trim(),
-            inputs[2].value.trim(),
-            inputs[3].value.trim()
-          ]);
-        });
-
-        return rows;
-      }
-
-      function getInternalRows(){
-        const rows = [[
-          'Bin Location',
-          'Customer Part Number',
-          'Description',
-          'Min Stock',
-          'Max Stock',
-          'Our Part Number',
-          'QR Code'
-        ]];
-
-        Array.from(listEl.querySelectorAll('tr')).forEach(tr => {
-          const inputs = tr.querySelectorAll('input');
-          rows.push([
-            tr.children[0].innerText.trim(),
-            inputs[0].value.trim(),
-            inputs[1].value.trim(),
-            inputs[2].value.trim(),
-            inputs[3].value.trim(),
-            '',
-            tr.children[5].innerText.trim()
-          ]);
-        });
-
-        return rows;
-      }
-
-      function rowsToCsv(rows){
-        return rows.map(row =>
-          row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
-        ).join('\\n');
-      }
-
-      function downloadFile(filename, content, mimeType){
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
-
-      function openMailDraft(){
-        const to = sendEmailEl.value.trim();
-        if(!to){
-          alert('Enter an email address in "Send map pack to".');
-          return;
-        }
-
-        const customer = customerNameEl.value.trim() || 'Customer';
-        const rackNumber = parseInt(rackEl.value || '0', 10);
-        const rack = rackNumber > 0 ? pad(Math.min(99, rackNumber)) : '00';
-
-        const subject = `Rack Map Pack | ${customer} | Rack ${rack}`;
-        const body = [
-          `Hi,`,
-          ``,
-          `Please find the rack map pack for ${customer}, Rack ${rack}.`,
-          ``,
-          `Two CSV files have just been downloaded from the tool:`,
-          `- Customer Form CSV`,
-          `- Internal Master CSV`,
-          ``,
-          `Please attach those downloaded files to this email before sending.`,
-          ``,
-          `Regards`
-        ].join('\\n');
-
-        window.location.href =
-          `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      }
-
-      buildBtn.addEventListener('click', buildAll);
-
-      resetBtn.addEventListener('click', () => {
-        customerNameEl.value = '';
-        sendEmailEl.value = '';
-        rackEl.value = '0';
-        shelvesEl.value = '0';
-        binsEl.value = '0';
-        positionsEl.value = '0';
-        clearOutputs();
-      });
-
-      sendPackBtn.addEventListener('click', () => {
-        if(!listEl.querySelector('tr')){
-          alert('Build the rack before sending the map pack.');
-          return;
-        }
-
-        const customer = (customerNameEl.value.trim() || 'customer').replace(/[^a-z0-9_-]/gi, '-');
-        const rackNumber = parseInt(rackEl.value || '0', 10);
-        const rack = rackNumber > 0 ? pad(Math.min(99, rackNumber)) : '00';
-
-        const customerCsv = rowsToCsv(getCustomerRows());
-        const internalCsv = rowsToCsv(getInternalRows());
-
-        downloadFile(`customer-form-rack-${rack}-${customer}.csv`, customerCsv, 'text/csv;charset=utf-8');
-        downloadFile(`internal-master-rack-${rack}-${customer}.csv`, internalCsv, 'text/csv;charset=utf-8');
-
-        setTimeout(() => {
-          openMailDraft();
-        }, 900);
-      });
-
-      clearOutputs();
     });
-  </script>
+
+    el.querySelector('.orderRemoveBtn').onclick = () => {
+      if(root.children.length === 1){
+        part.value='';
+        qty.value='';
+      } else {
+        el.remove();
+      }
+    };
+  }
+
+  addBtn.onclick = () => row();
+
+  completeBtn.onclick = () => {
+    alert('Email function unchanged');
+  };
+
+  row();
+})();
+</script>
 </body>
 </html>
