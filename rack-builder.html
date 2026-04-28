@@ -68,17 +68,27 @@
           <input id="positions" type="number" min="0" max="26" value="0"/>
         </div>
       </div>
+<div class="orderActions">
 
-      <div class="actions">
-        <button id="buildBtn" type="button">Build Rack</button>
-        <button id="downloadCustomerBtn" type="button" class="secondary">Download Customer CSV</button>
-        <button id="downloadInternalBtn" type="button" class="secondary">Download Internal CSV</button>
-        <label class="uploadBtn">
-          Upload Completed CSV
-          <input id="uploadCsvInput" type="file" accept=".csv,text/csv"/>
-        </label>
-        <button id="resetBtn" type="button" class="secondary">Reset</button>
-      </div>
+  <button class="smallbtn" id="buildBtn">Build Rack</button>
+
+  <button class="smallbtn" id="downloadCustomerBtn">
+    Download Customer CSV
+  </button>
+
+  <button class="smallbtn" id="downloadInternalBtn">
+    Download Internal CSV
+  </button>
+
+  <label class="smallbtn" style="display:flex;align-items:center;justify-content:center;cursor:pointer;">
+    Upload CSV
+    <input type="file" id="uploadCsvInput" accept=".csv" style="display:none">
+  </label>
+
+  <button class="smallbtn" id="resetBtn">Reset</button>
+
+</div>
+     
 
       <div class="note">
         Workflow: build the rack, download the customer CSV, have the customer complete Part Number, Description, and Max Stock, then upload the completed CSV to rebuild the rack and refill the list.
